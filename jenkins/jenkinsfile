@@ -1,0 +1,17 @@
+pipeline {
+    agent any
+    environment {
+    }
+    stages {
+        stage('getCode') {
+            steps {
+                git branch: 'master', url: 'https://github.com/JavierFontecha/unir-p1.4.git'
+            }
+        }
+    }
+    post {
+        always {
+            deleteDir()
+        }
+    }
+}
