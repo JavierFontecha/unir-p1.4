@@ -22,7 +22,7 @@ Para utilizar SAM CLI se necesitan las siguientes herramientas:
 
 ### Para **construir** la aplicación se deberá ejecutar el siguiente comando:
 ```bash
-sam build
+sam build 
 ```
 
 ### Desplegar la aplicación con la configuración de **samconfig.toml**:
