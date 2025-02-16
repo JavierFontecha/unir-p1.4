@@ -1,0 +1,36 @@
+#jenkins cd
+pipeline {
+    agent any
+    stages {
+        stage('get-code') {
+            steps {
+                git branch: 'master', url: 'https://github.com/JavierFontecha/unir-p1.4.git'
+            }
+        }
+        stage('sam-deploy') {
+            steps{
+                sh '''
+                    sam build
+                    sam validate --region us-east-1
+                    sam deploy --config-file samconfig.toml --config-env production --resolve-s3 --no-fail-on-empty-changeset
+                '''
+            }
+        }
+        
+        stage('rest-test') {
+            steps{
+                sh'''
+                    export BASE_URL=$(aws cloudformation describe-stacks --stack-name todo-list-aws-production --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text)
+                    pytest test/integration/todoApiTest.py::TestApi::test_api_listtodos test/integration/todoApiTest.py::TestApi::test_api_gettodo -v
+
+                '''
+            }
+        }
+        
+    }
+    post {
+        always {
+            deleteDir()
+        }
+    }
+}
