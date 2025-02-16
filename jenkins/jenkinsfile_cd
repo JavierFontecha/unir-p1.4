@@ -1,4 +1,3 @@
-#jenkins cd
 pipeline {
     agent any
     stages {
@@ -21,7 +20,7 @@ pipeline {
             steps{
                 sh'''
                     export BASE_URL=$(aws cloudformation describe-stacks --stack-name todo-list-aws-production --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text)
-                    pytest test/integration/todoApiTest.py::TestApi::test_api_listtodos test/integration/todoApiTest.py::TestApi::test_api_gettodo -v
+                    /usr/bin/python -m pytest test/integration/todoApiTest.py -m cd -v
 
                 '''
             }
