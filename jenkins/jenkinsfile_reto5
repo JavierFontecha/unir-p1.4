@@ -7,7 +7,7 @@ pipeline {
     }
 
     stages {
-        stage('get-code') {
+        stage('get-config') {
             steps {
                 script {
                     def ENVIRONMENT = (env.BRANCH_NAME == 'master') ? 'production' : 'staging'
