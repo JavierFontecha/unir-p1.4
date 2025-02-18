@@ -7,12 +7,15 @@ pipeline {
     }
 
     stages {
-        stage('get-config') {
+        stage('get-code') {
             steps {
                 script {
                     def ENVIRONMENT = (env.BRANCH_NAME == 'master') ? 'production' : 'staging'
                     def STACK_NAME = "todo-list-aws-${ENVIRONMENT}"
                     def PYTEST_MARKER = (env.BRANCH_NAME == 'master') ? '-m cd' : ''
+
+                    echo "Descargando código desde ${REPO_URL} (rama ${env.BRANCH_NAME})"
+                    git branch: env.BRANCH_NAME, url: REPO_URL
 
                     echo "Descargando configuración de ${ENVIRONMENT}"
                     sh "wget ${CONFIG_REPO}/${ENVIRONMENT}/samconfig.toml"
