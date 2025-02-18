@@ -1,0 +1,89 @@
+pipeline {
+    agent any
+
+    environment {
+        REPO_URL = 'https://github.com/JavierFontecha/unir-p1.4.git'
+        CONFIG_REPO = 'https://raw.githubusercontent.com/JavierFontecha/unir-p1.4-config'
+        ENVIRONMENT = (env.BRANCH_NAME == 'master') ? 'production' : 'staging'
+        STACK_NAME = "todo-list-aws-${ENVIRONMENT}"
+        PYTEST_MARKER = (env.BRANCH_NAME == 'master') ? '-m cd' : ''
+    }
+
+    stages {
+        stage('get-config') {
+            steps {
+                script {
+                    echo "Descargando configuración de ${ENVIRONMENT}"
+                    sh "wget ${CONFIG_REPO}/${ENVIRONMENT}/samconfig.toml"
+                }
+            }
+        }
+
+        stage('static-test') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                echo "Ejecutando análisis estático de código en develop"
+                sh '''
+                    /usr/bin/python -m flake8 --exit-zero --format=pylint src >flake8.out
+                    /usr/bin/python -m bandit --exit-zero -r src -f custom -o bandit.out --msg-template "{abspath}:{line}: [{test_id}] {msg}"
+                '''
+                recordIssues tools: [flake8(name: 'Flake8', pattern: 'flake8.out')]
+                recordIssues tools: [pyLint(name: 'Bandit', pattern: 'bandit.out')]
+            }
+        }
+
+        stage('sam-deploy') {
+            steps {
+                script {
+                    echo "Desplegando en AWS (${ENVIRONMENT}) con stack ${STACK_NAME}"
+                    sh """
+                        sam build
+                        sam validate --region us-east-1
+                        sam deploy --config-file samconfig.toml --config-env ${ENVIRONMENT} --resolve-s3 --no-fail-on-empty-changeset
+                    """
+                }
+            }
+        }
+
+        stage('rest-test') {
+            steps {
+                script {
+                    echo "Ejecutando pruebas en ${ENVIRONMENT}"
+                    sh """
+                        export BASE_URL=\$(aws cloudformation describe-stacks --stack-name ${STACK_NAME} --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text)
+                        echo "Pruebas apuntando a: \$BASE_URL"
+                        /usr/bin/python -m pytest test/integration/todoApiTest.py ${PYTEST_MARKER} -v
+                    """
+                }
+            }
+        }
+
+        stage('promote') {
+            when {
+                branch 'develop'
+            }
+            steps {
+                script {
+                    echo "Promoviendo cambios de develop a master"
+                    withCredentials([usernamePassword(credentialsId: 'githubtoken', 
+                                                     usernameVariable: 'GITHUB_USER', 
+                                                     passwordVariable: 'GITHUB_PASS')]) {
+                        sh '''
+                            git checkout master
+                            git merge develop
+                            git push https://$GITHUB_USER:$GITHUB_PASS@github.com/JavierFontecha/unir-p1.4.git
+                        '''
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            deleteDir()
+        }
+    }
+}
