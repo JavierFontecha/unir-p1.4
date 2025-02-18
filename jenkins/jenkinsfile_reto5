@@ -79,9 +79,9 @@ pipeline {
                                                      usernameVariable: 'GITHUB_USER', 
                                                      passwordVariable: 'GITHUB_PASS')]) {
                         sh '''
-                            git fetch --all
-                            git checkout master
-                            git merge develop
+                            git fetch origin master:master  
+                            git checkout master             
+                            git merge develop        
                             git push https://$GITHUB_USER:$GITHUB_PASS@github.com/JavierFontecha/unir-p1.4.git
                         '''
                     }
