@@ -76,6 +76,7 @@ pipeline {
                                                      usernameVariable: 'GITHUB_USER', 
                                                      passwordVariable: 'GITHUB_PASS')]) {
                         sh '''
+                            git branch
                             git fetch origin master:master  
                             git checkout master             
                             git merge origin/develop        
