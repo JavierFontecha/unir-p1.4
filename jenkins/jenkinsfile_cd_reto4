@@ -5,7 +5,7 @@ pipeline {
             steps {
                 git branch: 'master', url: 'https://github.com/JavierFontecha/unir-p1.4.git'
                 sh '''
-                    wget -O samconfig.toml https://raw.githubusercontent.com/JavierFontecha/unir-p1.4-config/production/samconfig.toml
+                    wget https://raw.githubusercontent.com/JavierFontecha/unir-p1.4-config/production/samconfig.toml
                 '''
             }
         }
