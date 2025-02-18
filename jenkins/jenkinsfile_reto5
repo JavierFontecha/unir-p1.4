@@ -4,17 +4,22 @@ pipeline {
     environment {
         REPO_URL = 'https://github.com/JavierFontecha/unir-p1.4.git'
         CONFIG_REPO = 'https://raw.githubusercontent.com/JavierFontecha/unir-p1.4-config'
-        ENVIRONMENT = (env.BRANCH_NAME == 'master') ? 'production' : 'staging'
-        STACK_NAME = "todo-list-aws-${ENVIRONMENT}"
-        PYTEST_MARKER = (env.BRANCH_NAME == 'master') ? '-m cd' : ''
     }
 
     stages {
         stage('get-config') {
             steps {
                 script {
+                    def ENVIRONMENT = (env.BRANCH_NAME == 'master') ? 'production' : 'staging'
+                    def STACK_NAME = "todo-list-aws-${ENVIRONMENT}"
+                    def PYTEST_MARKER = (env.BRANCH_NAME == 'master') ? '-m cd' : ''
+
                     echo "Descargando configuración de ${ENVIRONMENT}"
                     sh "wget ${CONFIG_REPO}/${ENVIRONMENT}/samconfig.toml"
+
+                    env.ENVIRONMENT = ENVIRONMENT
+                    env.STACK_NAME = STACK_NAME
+                    env.PYTEST_MARKER = PYTEST_MARKER
                 }
             }
         }
@@ -37,11 +42,11 @@ pipeline {
         stage('sam-deploy') {
             steps {
                 script {
-                    echo "Desplegando en AWS (${ENVIRONMENT}) con stack ${STACK_NAME}"
+                    echo "Desplegando en AWS (${env.ENVIRONMENT}) con stack ${env.STACK_NAME}"
                     sh """
                         sam build
                         sam validate --region us-east-1
-                        sam deploy --config-file samconfig.toml --config-env ${ENVIRONMENT} --resolve-s3 --no-fail-on-empty-changeset
+                        sam deploy --config-file samconfig.toml --config-env ${env.ENVIRONMENT} --resolve-s3 --no-fail-on-empty-changeset
                     """
                 }
             }
@@ -50,11 +55,11 @@ pipeline {
         stage('rest-test') {
             steps {
                 script {
-                    echo "Ejecutando pruebas en ${ENVIRONMENT}"
+                    echo "Ejecutando pruebas en ${env.ENVIRONMENT}"
                     sh """
-                        export BASE_URL=\$(aws cloudformation describe-stacks --stack-name ${STACK_NAME} --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text)
+                        export BASE_URL=\$(aws cloudformation describe-stacks --stack-name ${env.STACK_NAME} --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text)
                         echo "Pruebas apuntando a: \$BASE_URL"
-                        /usr/bin/python -m pytest test/integration/todoApiTest.py ${PYTEST_MARKER} -v
+                        /usr/bin/python -m pytest test/integration/todoApiTest.py ${env.PYTEST_MARKER} -v
                     """
                 }
             }
@@ -83,6 +88,7 @@ pipeline {
 
     post {
         always {
+            echo "Limpieza del workspace"
             deleteDir()
         }
     }
