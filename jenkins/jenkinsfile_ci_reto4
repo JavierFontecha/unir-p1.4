@@ -4,6 +4,9 @@ pipeline {
         stage('get-code') {
             steps {
                 git branch: 'develop', url: 'https://github.com/JavierFontecha/unir-p1.4.git'
+                sh '''
+                    wget https://raw.githubusercontent.com/JavierFontecha/unir-p1.4-config/staging/samconfig.toml
+                '''
             }
         }
         stage('static-test') {
@@ -42,7 +45,6 @@ pipeline {
                                                      usernameVariable: 'GITHUB_USER', 
                                                      passwordVariable: 'GITHUB_PASS')]) {
                         sh '''
-                            echo "Usuario: $GITHUB_USER"
                             git checkout master
                             git merge develop
                             git push https://$GITHUB_USER:$GITHUB_PASS@github.com/JavierFontecha/unir-p1.4.git

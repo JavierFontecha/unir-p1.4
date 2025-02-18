@@ -1,0 +1,54 @@
+pipeline {
+    agent none
+    stages {
+        stage('get-code') {
+            agent { label 'master' }
+            steps {
+                sh '''
+                    whoami
+                    hostname
+                    echo ${WORKSPACE}
+                    echo ${NODE_NAME}
+                '''
+                git branch: 'master', url: 'https://github.com/JavierFontecha/unir-p1.4.git'
+                stash name: 'code', includes: '**/*'
+            }
+        }
+        stage('sam-deploy') {
+            agent { label 'master' }
+            steps{
+                sh '''
+                    whoami
+                    hostname
+                    echo ${WORKSPACE}
+                    echo ${NODE_NAME}
+                    
+                    sam build
+                    sam validate --region us-east-1
+                    sam deploy --config-file samconfig.toml --config-env production --resolve-s3 --no-fail-on-empty-changeset
+                '''
+            }
+        }
+        
+        stage('rest-test') {
+            agent { label 'agent2' }
+            steps{
+                sh'''
+                    export BASE_URL=$(aws cloudformation describe-stacks --stack-name todo-list-aws-production --query "Stacks[0].Outputs[?OutputKey=='BaseUrlApi'].OutputValue" --output text)
+                    /usr/bin/python -m pytest test/integration/todoApiTest.py -m cd -v
+                '''
+            }
+        }
+        
+    }
+    post {
+        always {
+            node('master') {
+                cleanWs()
+            }
+            node('agent2') {
+                cleanWs()
+            }
+        }
+    }
+}
