@@ -77,7 +77,6 @@ pipeline {
                                                      passwordVariable: 'GITHUB_PASS')]) {
                         sh '''
                             git branch
-                            git fetch origin master:master  
                             git checkout master             
                             git merge origin/develop        
                             git push https://$GITHUB_USER:$GITHUB_PASS@github.com/JavierFontecha/unir-p1.4.git
